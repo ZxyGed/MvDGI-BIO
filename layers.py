@@ -1,5 +1,5 @@
-import numpy as np
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -163,30 +163,18 @@ class Discriminator(nn.Module):
             if m.bias is not None:
                 m.bias.data.fill_(0.0)
 
-    def forward(self, c1, c2, h1, h2, h3, h4, s_bias1=None, s_bias2=None):
-        # print(c1.shape)
-        c_x1 = torch.unsqueeze(c1, 1)  # torch.Size([1, 1, 512])
-        # print('c_x1', c_x1.shape)
-        # print(h1.shape)
-        c_x1 = c_x1.expand_as(h1).contiguous()  # torch.Size([1, 2708, 512])
-        # print('c_x1', c_x1.shape)
-        c_x2 = torch.unsqueeze(c2, 1)
-        c_x2 = c_x2.expand_as(h2).contiguous()
+    def forward(self, view_embeddings, pos_embeddings, neg_embeddings):
+        num_views=len(view_embeddings)
 
-        # positive
-        sc_1 = torch.squeeze(self.f_k(h1, c_x2), 2)  # torch.Size([1, 2708])
-        # print('sc_1', sc_1.shape)
-        sc_2 = torch.squeeze(self.f_k(h2, c_x1), 2)
-        # sc_3 = torch.squeeze(self.f_k(h1, c_x2), 2)
-        # sc_4 = torch.squeeze(self.f_k(h2, c_x1), 2)
+        print('start discriminate')
+        print("pos_embedding's shape is %s"%pos_embeddings[0].shape)
+        print("neg_embedding's shape is %s"%neg_embeddings[0].shape)
+        print("view_embedding's shape is %s"%view_embeddings[0].shape)
+        positive_rates = torch.cat([self.f_k(pos_embeddings[i], view_embeddings[i]) for i in range(num_views)],0)
+        negative_rates = torch.cat([self.f_k(neg_embeddings[i], view_embeddings[i]) for i in range(num_views)],0)
 
-        # negetive
-        sc_5 = torch.squeeze(self.f_k(h3, c_x2), 2)
-        sc_6 = torch.squeeze(self.f_k(h4, c_x1), 2)
-        # sc_7 = torch.squeeze(self.f_k(h3, c_x2), 2)
-        # sc_8 = torch.squeeze(self.f_k(h4, c_x1), 2)
-
-        logits = torch.cat((sc_1, sc_2, sc_5, sc_6), 1)
+        # print('positive_rates shape', positive_rates.shape)
+        logits = torch.cat([positive_rates,negative_rates], 0)
         return logits
 
 
