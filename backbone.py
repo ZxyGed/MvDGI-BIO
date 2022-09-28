@@ -25,6 +25,12 @@ class GAT(nn.Module):
         x = F.elu(self.out_att(x, adj))
         return F.log_softmax(x, dim=1)
 
+    def get_attention_weight(self):
+        attention_weights = []
+        for attention in self.attentions:
+            attention_weights.append(attention.W.detach())
+        return torch.stack(attention_weights,0)
+
 
 class SpGAT(nn.Module):
     def __init__(self, nfeat, nhid, nclass, dropout, alpha, nheads):
