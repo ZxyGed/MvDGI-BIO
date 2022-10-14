@@ -133,3 +133,9 @@ data/
 
 # model folder
 model/
+
+# embeddings foler
+embeddings/
+
+# intermediate product
+gen_yaml.py

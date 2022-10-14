@@ -1,33 +1,35 @@
 import os
+import gc
+import time
+import yaml
+import random
 import numpy as np
 from scipy import sparse
 import torch
 import torch.nn as nn
 from model import BIODGI
-from utils import build_consistency_loss
+from utils import build_consistency_loss, free_gpu_cache
 
 
 dataset = 'yeast'
 num_views = 6
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# folder to preserve model parameters
+# folder to preserve model parameters and embeddings
 if not os.path.exists('model'):
     os.mkdir('model')
+if not os.path.exists('embeddings'):
+    os.mkdir('embeddings')
 
-if dataset == 'yeast':
-    args = {'name': 'yeast', 'num_nodes': 6400, 'input_dim': 6400, 'hidden_dim': 512, 'embedding_dim': 32,
-                    'num_epoch': 1200, 'learning_rate': 0.005, 'dropout_rate': 0.1, 'alpha': 0.2, 'num_heads': 8, 'patience': 35, 'seed': 42}
-elif dataset == 'human':
-    args = {'name': 'human', 'num_nodes': 6400, 'input_dim': 18362, 'hidden_dim': 512, 'embedding_dim': 32,
-                    'num_epoch': 1200, 'learning_rate': 0.005, 'dropout_rate': 0.1, 'alpha': 0.2, 'num_heads': 8, 'patience': 35, 'seed': 42}
-else:
-    print('wrong data type')
+with open(f"hyper_parameters/train/{dataset}.yaml", 'r', encoding='utf-8') as f:
+    args = yaml.safe_load(f)
+
 
 views_list = ['coexpression', 'cooccurence', 'database',
               'experimental', 'fusion', 'neighborhood']
 
 
-def load_data(filename): return torch.FloatTensor(
+def load_data(file_name): return torch.FloatTensor(
     np.array(sparse.load_npz(file_name).todense())).to(device)
 
 
@@ -36,7 +38,6 @@ attrs = [load_data('data/attrs/%s_%s.npz' %
 adjs = [load_data('data/adjs/%s_%s.npz' %
                   (args['name'], view)) for view in views_list]
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 random.seed(args['seed'])
 np.random.seed(args['seed'])
@@ -60,9 +61,13 @@ best_epoch = args['num_epoch'] + 1
 
 target_label_1 = torch.ones(num_views * args['num_nodes'], 1)
 target_label_0 = torch.zeros(num_views * args['num_nodes'], 1)
-target_label = torch.cat((target_label_1, target_label_0), 0).to(self.device)
+target_label = torch.cat((target_label_1, target_label_0), 0).to(device)
 
+t = time.time()
 for epoch in range(args['num_epoch']):
+    # gc.collect()
+    # torch.cuda.empty_cache()
+    free_gpu_cache()
     model.train()
     optimiser.zero_grad()
     logits = model(attrs, adjs)
@@ -81,3 +86,11 @@ for epoch in range(args['num_epoch']):
 
     loss.backward()
     optimiser.step()
+
+print("Optimization Finished!")
+print("Total time elapsed: %.4fs" % (time.time() - t))
+
+print("Loading %dth epoch" % best_epoch)
+model.load_state_dict(torch.load("model/%s.pkl" % args['name']))
+embeddings = model.embed(attrs, adjs).detach().numpy()
+np.save("embeddings/%s.npy" % args['name'], embeddings)

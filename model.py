@@ -10,9 +10,9 @@ from layers import AvgReadout, Discriminator
 class BIODGI(nn.Module):
     def __init__(self, attrs_dim, hiddens_dim, out_dim, dropout, alpha, num_heads):
         super(BIODGI, self).__init__()
-        self.num_views = len(num_views)
+        self.num_views = len(attrs_dim)
         self.models = nn.ModuleList(
-            [GAT(attrs_dim[i], hiddens_dim[i], outs_dim[i], dropout, alpha, num_heads) for i in range(self.num_views)])
+            [GAT(attrs_dim[i], hiddens_dim[i], out_dim, dropout, alpha, num_heads) for i in range(self.num_views)])
         self.read = AvgReadout()
         self.dropout = nn.Dropout(dropout)
         self.sigm = nn.Sigmoid()

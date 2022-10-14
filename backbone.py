@@ -29,7 +29,7 @@ class GAT(nn.Module):
         attention_weights = []
         for attention in self.attentions:
             attention_weights.append(attention.W.detach())
-        return torch.stack(attention_weights,0)
+        return torch.stack(attention_weights, 0)
 
 
 class SpGAT(nn.Module):
