@@ -137,5 +137,8 @@ model/
 # embeddings foler
 embeddings/
 
+# datasets folder
+datasets/
+
 # intermediate product
 gen_yaml.py
