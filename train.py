@@ -8,7 +8,7 @@ from scipy import sparse
 import torch
 import torch.nn as nn
 from model import BIODGI
-from utils import build_consistency_loss, free_gpu_cache
+# from utils import build_consistency_loss, free_gpu_cache
 
 
 dataset = 'yeast'
@@ -39,18 +39,18 @@ adjs = [load_data('data/adjs/%s_%s.npz' %
                   (args['name'], view)) for view in views_list]
 
 
+
 random.seed(args['seed'])
 np.random.seed(args['seed'])
 torch.manual_seed(args['seed'])
-torch.cuda.manual_seed(args['seed'])
+# torch.cuda.manual_seed(args['seed'])
 
-torch.cuda.empty_cache()
+# torch.cuda.empty_cache()
 
 attrs_dim = [args['input_dim']] * num_views
 hiddens_dim = [args['hidden_dim']] * num_views
 out_dim = args['embedding_dim']
-model = BIODGI(attrs_dim, hiddens_dim, out_dim,
-               args['dropout_rate'], alpha=args['alpha'], num_heads=args['num_heads']).to(device)
+model = BIODGI(attrs_dim, hiddens_dim, out_dim,args['dropout_rate']).to(device)
 optimiser = torch.optim.Adam(model.parameters(), lr=args['learning_rate'])
 
 b_xent = nn.BCEWithLogitsLoss()
@@ -67,12 +67,12 @@ t = time.time()
 for epoch in range(args['num_epoch']):
     # gc.collect()
     # torch.cuda.empty_cache()
-    free_gpu_cache()
+    # free_gpu_cache()
     model.train()
     optimiser.zero_grad()
     logits = model(attrs, adjs)
     loss = b_xent(logits, target_label)
-    loss += build_consistency_loss(model.get_attention_weight())
+    # loss += build_consistency_loss(model.get_attention_weight())
     if loss < best_performance:
         best_performance = loss
         best_epoch = epoch
