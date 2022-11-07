@@ -10,7 +10,7 @@ from layers import AvgReadout, Discriminator
 
 
 class BIODGI(nn.Module):
-    def __init__(self, attrs_dim, hiddens_dim, out_dim, dropout_rate, alpha, num_heads):
+    def __init__(self, attrs_dim, hiddens_dim, out_dim, dropout_rate):
         super(BIODGI, self).__init__()
         self.num_views = len(attrs_dim)
         self.models = nn.ModuleList(
