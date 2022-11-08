@@ -1,9 +1,10 @@
 # This Code is partly borrowed from https://github.com/VGligorijevic/deepNF
 
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, zero_one_loss
 import warnings
 warnings.filterwarnings("ignore")
+
 
 def accuracy_top(scores, labels):
     predictions = scores.argmax(axis=1)
@@ -13,6 +14,7 @@ def accuracy_top(scores, labels):
             count_ = count_ + 1
     acc = count_ / float(len(predictions))
     return acc
+
 
 def real_AUPR(label, score):
     label = label.flatten()
@@ -25,13 +27,13 @@ def real_AUPR(label, score):
     # N = len(label) - P
 
     TP = np.cumsum(label, dtype=float)
-    PP = np.arange(1, len(label)+1, dtype=float)
+    PP = np.arange(1, len(label) + 1, dtype=float)
 
     x = np.divide(TP, P)  # recall
     y = np.divide(TP, PP)  # precision
 
     pr = np.trapz(y, x)
-    f = np.divide(2*x*y, (x + y))
+    f = np.divide(2 * x * y, (x + y))
     idx = np.where((x + y) != 0)[0]
     if len(idx) != 0:
         f = np.max(f[idx])
@@ -40,6 +42,7 @@ def real_AUPR(label, score):
 
     # return pr
     return pr, f
+
 
 def evaluate_performance(y_test, y_score, y_pred):
     n_classes = y_test.shape[1]
@@ -69,7 +72,8 @@ def evaluate_performance(y_test, y_score, y_pred):
         top_alpha = np.argsort(y_score[i, :])[-alpha:]
         # for idx in range(len(top_alpha)):
         #     y_new_pred[i, top_alpha[idx]] = np.array(alpha*[1])
-        y_new_pred[i, top_alpha] = np.array(alpha*[1])
+        y_new_pred[i, top_alpha] = np.array(alpha * [1])
     perf["F1"] = f1_score(y_test, y_new_pred, average='micro')
+    perf["zero"] = zero_one_loss(y_test, y_pred)
 
     return perf
