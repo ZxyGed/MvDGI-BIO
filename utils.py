@@ -34,6 +34,15 @@ def build_consistency_loss(attention_weights):
     return loss
 
 
+def rwr(graph, restart_prob):
+    n = graph.shape[0]
+    graph = graph - np.diag(np.diag(graph))
+    graph = graph + np.diag(np.sum(graph, axis=0) == 0)
+    norm_graph = graph / np.sum(graph, axis=0)
+    ret = np.matmul(np.linalg.inv(np.eye(n) - (1 - restart_prob) * norm_graph), restart_prob * np.eye(n))
+    return ret
+
+
 def free_gpu_cache():
     print("Initial GPU Usage")
     gpu_usage()
