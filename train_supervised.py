@@ -4,15 +4,17 @@ import sys
 import time
 import random
 import argparse
-import yaml
+import logging
 
+import yaml
 import numpy as np
 from scipy import sparse
 import torch
 import torch.nn as nn
 
-from model import BIODGI
+from model import BIODGI, P_GNN, SimpleFC
 from dataset import Yeast, Human
+from metrics import evaluate_performance
 
 
 random.seed(42)
@@ -21,7 +23,8 @@ torch.manual_seed(42)
 
 parser = argparse.ArgumentParser(description='Training Config', add_help=False)
 
-parser.add_argument('-c', '--config_yaml', default="./hyper_parameters/train/yeast.yaml", type=str, metavar='FILE', help='YAML config file specifying default arguments')
+parser.add_argument('-c', '--config_yaml', default="./hyper_parameters/train/yeast.yaml",
+                    type=str, metavar='FILE', help='YAML config file specifying default arguments')
 parser.add_argument('-l', '--level', default='level1', type=str)
 parser.add_argument('-d', '--domain', default='bp', type=str)
 parser.add_argument('-s', '--size', default='1130', type=str)
@@ -45,16 +48,20 @@ if not os.path.exists('embeddings'):
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 if args.name == 'yeast':
-    datas = Yeast(args.root, level=args.level, re_generate=args.re_generate).to(device)
+    # 添加todevice代码
+    datas = Yeast(args.root, level=args.level,
+                  re_generate=args.re_generate).data.to(device)
 elif args.name == 'human':
-    datas = Human(args.root, domain=args.domain, size=args.size, re_generate=args.re_generate).to(device)
+    datas = Human(args.root, domain=args.domain, size=args.size,
+                  re_generate=args.re_generate).data.to(device)
 else:
-    raise ValueError(f'Dataset({args.name}) found, but expected either yeast or human')
+    raise ValueError(
+        f'Dataset({args.name}) found, but expected either yeast or human')
 
 num_views = 6
-num_nodes = datas.data[0].shape[0]
+num_nodes = datas[0].shape[0]
 
-attrs_dim = [d.shape[1] for d in datas.data]
+attrs_dim = [d.shape[1] for d in datas]
 hiddens_dim = [args.hidden_dim] * num_views
 out_dim = args.embedding_dim
 

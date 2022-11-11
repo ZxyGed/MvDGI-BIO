@@ -6,11 +6,10 @@ import torch.nn.functional as F
 import numpy as np
 from scipy import sparse
 from backbone_pyg import GCN, MultiHopGNN
-from torch_geometric.utils import shuffle_node
+# from torch_geometric.utils import shuffle_node #2.0.4 don't support this function
 # from backbone import GCN, GAT, SpGAT
-# from utils import gen_negative_samples
 from layers import AvgReadout, Discriminator
-from utils import count_occurence, construct_graph, rwr, sparse_adj
+from utils import count_occurence, construct_graph, rwr, sparse_adj, gen_negative_samples
 
 
 class BIODGI(nn.Module):
@@ -26,14 +25,24 @@ class BIODGI(nn.Module):
         self.disc = Discriminator(out_dim)
 
     def forward(self, datas):
-        pos_embeddings = [self.models[i](
-            datas[i].x, datas[i].edge_index, datas[i].edge_weight)for i in range(self.num_views)]
-        shuffled_x, _ = shuffle_node(datas[i].x)
-        neg_embddings = [self.models[i](
-            shuffled_x, datas[i].edge_index, datas[i].edge_weight) for i in range(self.num_views)]
+        pos_embeddings = []
+        neg_embddings = []
+        for i in range(self.num_views):
+            pos_embedding = self.models[i](
+                datas[i].x, datas[i].edge_index, datas[i].edge_weight)
+            pos_embeddings.append(pos_embedding)
 
-        view_embeddings = [self.sigm(self.read(self.dropout(
-            pos_embedding))) for pos_embedding in pos_embeddings]
+            shuffled_x = gen_negative_samples(datas[i].x)
+            neg_embdding = self.models[i](
+                shuffled_x, datas[i].edge_index, datas[i].edge_weight)
+            neg_embddings.append(neg_embdding)
+
+        view_embeddings = []
+        num_nodes = datas[0].num_nodes
+        for i in range(self.num_views):
+            view_embedding = self.sigm(self.read(self.dropout(pos_embedding)))
+            # bilinear needs the input1 and 2 has the same size except for the last dim
+            view_embeddings.append(view_embedding.repeat(num_nodes, 1))
 
         ret = self.disc(view_embeddings, pos_embeddings, neg_embddings)
 
@@ -53,7 +62,7 @@ class BIODGI(nn.Module):
 
 
 class P_GNN(nn.Module):
-    def __init__(self, labels, num_layers=2, hidden_ft=17, GNN='GAT', threshold=0.1, p=0.5, occurence_count_file=None):
+    def __init__(self, labels, num_layers=2, hidden_ft=17, embedding_Ft=17, GNN='GAT', dropout_rate=0.1, neg_slop=0.2, threshold=0.1, p=0.5, occurence_count_file=None):
         super().__init__()
         file_path = f'datasets/occurence_count/{occurence_count_file}'
         if os.path.exists(file_path):
@@ -66,18 +75,27 @@ class P_GNN(nn.Module):
         self.edge_index, self.edge_weight = sparse_adj(adj)
         assert GNN in ['GAT', 'GCN']
         self.GNN = GNN
-        self.gnn = MultiHopGNN(self.attrs.shape[1], hidden_ft, num_layers, GNN)
+        self.gnn = MultiHopGNN(
+            self.attrs.shape[1], hidden_ft, embedding_ft, num_layers, GNN, dropout_rate, neg_slop)
 
     def forward(self):
         if self.GNN == "GCN":
-            ret = self.gnn(self.attrs, self.edge_index, self.weight)
+            self.class_embeddings = self.gnn(
+                self.attrs, self.edge_index, self.weight)
         else:
-            ret = self.gnn(self.attrs, self.edge_index)
+            self.class_embeddings = self.gnn(self.attrs, self.edge_index)
+        return self.class_embeddings
+
+    def predict(self, sample_embeddings):
+        norm_val = torch.norm(sample_embeddings, dim=1)[
+            :, None] * torch.norm(self.class_embeddings, dim=1)[None, :] + 1e-6
+        return torch.matmul(sample_embeddings, self.class_embeddings.T) / norm_val
 
 
 class SimpleFC(nn.Module):
-    def __init__(self):
-        pass
+    def __init__(self, in_dim, out_dim):
+        self.fc = nn.Linear(in_dim, out_dim)
 
-    def forward(self):
-        pass
+    def forward(self, x):
+        x = self.fc(x)
+        return F.log_softmax(x, dim=1)

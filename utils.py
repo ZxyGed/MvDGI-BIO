@@ -7,15 +7,12 @@ from GPUtil import showUtilization as gpu_usage
 from numba import cuda
 
 
-def gen_negative_samples(X, is_batch=False):
+def gen_negative_samples(X):
     # seed is set as 42
     np.random.seed(42)
     num_samples = X.shape[0]
     idx = np.random.permutation(num_samples)
-    if is_batch:
-        return X[:, idx, :]
-    else:
-        return X[idx, :]
+    return X[idx, :]
 
 
 def get_useful_sample_index(mat):
@@ -70,10 +67,11 @@ def construct_graph(A, count, threshold=0.5, p=0.5):
 
 
 def sparse_adj(adj):
-    adj=sparse.coo_matrix(adj)
-    edge_index = torch.tensor(np.vstack((adj.row, adj.col)),dtype=torch.long)
-    edge_weight = torch.tensor(adj.data.reshape(-1, 1),dtype=torch.float)
-    return edge_index,edge_weight
+    adj = sparse.coo_matrix(adj)
+    edge_index = torch.tensor(np.vstack((adj.row, adj.col)), dtype=torch.long)
+    edge_weight = torch.tensor(adj.data.reshape(-1, 1), dtype=torch.float)
+    return edge_index, edge_weight
+
 
 def free_gpu_cache():
     print("Initial GPU Usage")

@@ -23,11 +23,11 @@ class GCN(torch.nn.Module):
 
 
 class MultiHopGNN(torch.nn.Module):
-    def __init__(self, in_ft, hidden_ft, num_layers, GNN, dropout_rate=0.1, neg_slop=0.2):
+    def __init__(self, in_ft, hidden_ft, embedding_ft, num_layers, GNN, dropout_rate=0.1, neg_slop=0.2):
         super().__init__()
         assert GNN in ["GCN", "GAT"]
         self.GNN = GNN
-        if GNN = "GCN":
+        if GNN == "GCN":
             self.layers = [
                 GCNConv(in_ft, hidden_ft, add_self_loops=False, normalize=False)]
             for i in range(num_layers - 1):
@@ -45,7 +45,7 @@ class MultiHopGNN(torch.nn.Module):
         self.num_layers = num_layers
         self.neg_slop = neg_slop
         self.dropout_rate = dropout_rate
-        self.hypo = nn.Linear(self.num_layers * hidden_ft, hidden_ft)
+        self.hypo = nn.Linear(self.num_layers * hidden_ft, embedding_ft)
 
     def forward(self, x, edge_index, edge_weight=None):
         layers_ret = []

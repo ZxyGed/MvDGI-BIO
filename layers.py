@@ -164,17 +164,19 @@ class Discriminator(nn.Module):
                 m.bias.data.fill_(0.0)
 
     def forward(self, view_embeddings, pos_embeddings, neg_embeddings):
-        num_views=len(view_embeddings)
+        num_views = len(view_embeddings)
 
-        print('start discriminate')
-        print("pos_embedding's shape is %s"%pos_embeddings[0].shape)
-        print("neg_embedding's shape is %s"%neg_embeddings[0].shape)
-        print("view_embedding's shape is %s"%view_embeddings[0].shape)
-        positive_rates = torch.cat([self.f_k(pos_embeddings[i], view_embeddings[i]) for i in range(num_views)],0)
-        negative_rates = torch.cat([self.f_k(neg_embeddings[i], view_embeddings[i]) for i in range(num_views)],0)
+        # print('start discriminate')
+        # print("pos_embedding's shape is %s" % str(pos_embeddings[0].shape))
+        # print("neg_embedding's shape is %s" % str(neg_embeddings[0].shape))
+        # print("view_embedding's shape is %s" % str(view_embeddings[0].shape))
+        positive_rates = torch.cat(
+            [self.f_k(pos_embeddings[i], view_embeddings[i]) for i in range(num_views)], 0)
+        negative_rates = torch.cat(
+            [self.f_k(neg_embeddings[i], view_embeddings[i]) for i in range(num_views)], 0)
 
         # print('positive_rates shape', positive_rates.shape)
-        logits = torch.cat([positive_rates,negative_rates], 0)
+        logits = torch.cat([positive_rates, negative_rates], 0)
         return logits
 
 
@@ -182,9 +184,9 @@ class AvgReadout(nn.Module):
     def __init__(self):
         super(AvgReadout, self).__init__()
 
-    def forward(self, seq, msk):
+    def forward(self, seq, msk=None):
         if msk is None:
-            return torch.mean(seq, dim=1)
+            return torch.mean(seq, dim=0)
         else:
             msk = torch.unsqueeze(msk, -1)
             return torch.sum(seq * msk, 1) / torch.sum(msk)
