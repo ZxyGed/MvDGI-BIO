@@ -30,7 +30,7 @@ parser.add_argument('-d', '--domain', default='bp', type=str)
 parser.add_argument('-s', '--size', default='1130', type=str)
 parser.add_argument('-rg', '--re_generate', default=False, type=bool)
 
-parser.add_argument('-ep', '--epoch', default=1200, type=int)
+parser.add_argument('-ep', '--num_epoch', default=1200, type=int)
 parser.add_argument('-lr', '--learning_rate', default=0.005, type=float)
 parser.add_argument('-dr', '--dropout_rate', default=0.1, type=float)
 
@@ -45,6 +45,8 @@ if not os.path.exists('model'):
     os.mkdir('model')
 if not os.path.exists('embeddings'):
     os.mkdir('embeddings')
+if not os.path.exists('results'):
+    os.mkdir('results')
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 if args.name == 'yeast':
@@ -66,6 +68,9 @@ attrs_dim = [d.num_features for d in datas]
 hiddens_dim = [args.hidden_dim] * num_views
 out_dim = args.embedding_dim
 
+print(f'embdding_dim:{out_dim}')
+# print(f'attrs_dim:{attrs_dim}')
+
 model = BIODGI(attrs_dim, hiddens_dim, out_dim, args.dropout_rate).to(device)
 optimiser = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
@@ -80,6 +85,7 @@ target_label_0 = torch.zeros(num_views * num_nodes, 1)
 target_label = torch.cat((target_label_1, target_label_0), 0).to(device)
 
 t = time.time()
+losses=[]
 for epoch in range(args.num_epoch):
     # gc.collect()
     # torch.cuda.empty_cache()
@@ -88,6 +94,7 @@ for epoch in range(args.num_epoch):
     optimiser.zero_grad()
     logits = model(datas)
     loss = b_xent(logits, target_label)
+    losses.append(loss.cpu().detach().numpy())
     # loss += build_consistency_loss(model.get_attention_weight())
     if loss < best_performance:
         best_performance = loss
@@ -108,5 +115,6 @@ print("Total time elapsed: %.4fs" % (time.time() - t))
 
 print("Loading %dth epoch" % best_epoch)
 model.load_state_dict(torch.load("model/%s.pkl" % args.name))
-embeddings = model.embed(datas).detach().numpy()
+embeddings = model.embed(datas).cpu().detach().numpy()
+print(f'embeddings.shape:{embeddings.shape}')
 np.save("embeddings/%s.npy" % args.name, embeddings)

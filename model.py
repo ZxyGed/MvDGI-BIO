@@ -22,12 +22,16 @@ class BIODGI(nn.Module):
         self.dropout = nn.Dropout(dropout_rate)
         self.sigm = nn.Sigmoid()
 
+        self.W = nn.Linear(self.num_views * out_dim, out_dim)
+        # self.view_weight=nn.Linear(num_views)
+        # self.W=nn.Linear(num_views*out_dim, out_dim)
+
         self.disc = Discriminator(out_dim)
 
     def forward(self, datas):
         pos_embeddings = []
         neg_embddings = []
-        for i in range(self.num_views):
+        for i in range(self.num_viewyis):
             pos_embedding = self.models[i](
                 datas[i].x, datas[i].edge_index, datas[i].edge_weight)
             pos_embeddings.append(pos_embedding)
@@ -52,7 +56,9 @@ class BIODGI(nn.Module):
     def embed(self, datas):
         embeddings = [self.models[i](datas[i].x, datas[i].edge_index, datas[i].edge_weight)
                       for i in range(self.num_views)]
-        return torch.cat(embeddings, dim=-1).detach()
+        embedding = self.W(torch.cat(embeddings, dim=-1))
+        embedding = F.softmax(embedding)
+        return embedding
 
     # def get_attention_weight(self):
     #     attention_weights = []
@@ -62,7 +68,7 @@ class BIODGI(nn.Module):
 
 
 class P_GNN(nn.Module):
-    def __init__(self, labels, num_layers=2, hidden_ft=17, embedding_Ft=17, GNN='GAT', dropout_rate=0.1, neg_slop=0.2, threshold=0.1, p=0.5, occurence_count_file=None):
+    def __init__(self, labels, num_layers=2, hidden_ft=17, embedding_ft=17, GNN='GAT', dropout_rate=0.1, neg_slop=0.2, threshold=0.1, p=0.5, occurence_count_file=None):
         super().__init__()
         file_path = f'datasets/occurence_count/{occurence_count_file}'
         if os.path.exists(file_path):
