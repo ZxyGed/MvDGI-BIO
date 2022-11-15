@@ -31,7 +31,7 @@ class BIODGI(nn.Module):
     def forward(self, datas):
         pos_embeddings = []
         neg_embddings = []
-        for i in range(self.num_viewyis):
+        for i in range(self.num_views):
             pos_embedding = self.models[i](
                 datas[i].x, datas[i].edge_index, datas[i].edge_weight)
             pos_embeddings.append(pos_embedding)

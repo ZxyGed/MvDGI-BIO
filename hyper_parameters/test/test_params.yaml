@@ -1,0 +1,31 @@
+data_params:
+    name: yeast
+    level: level1
+    domain: bp
+    # set the 1130 as string
+    # https://developer.huawei.com/consumer/cn/forum/topic/0201542098971150052
+    size: !!str 1130
+
+lgb_params:
+    boosting_type: gbdt
+    objective: binary
+    metric: 
+        - binary_logloss
+        - auc
+
+    # 'metric': {'l2', 'auc'},
+    n_estimators: 550
+    learning_rate: 0.05
+    num_leaves: 16
+    max_depth: 7
+    # subsample:0.8,
+    # colsample_bytree:0.8,
+
+    force_col_wise: True
+    min_data_in_leaf: 41
+    max_bin: 35
+    feature_fraction: 0.8
+    bagging_fraction: 0.8
+    bagging_freq: 20
+
+    verbose: -1
