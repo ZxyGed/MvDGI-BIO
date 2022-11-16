@@ -36,7 +36,10 @@ else:
 
 content = np.load(path)
 Y = content['y']
-X = np.load(f'embeddings/{args.name}.npy')
+content = np.load(f'embeddings/{args.name}_test.npz')
+X = content['X']
+params = content['params']
+print(params)
 
 maupr_all = []
 Maupr_all = []
@@ -53,7 +56,7 @@ for j in range(10):
 
     test_sample_percentage = 0.1
     test_sample_index = int(test_sample_percentage * float(len(Y)))
-    print(test_sample_index)
+    # print(test_sample_index)
     X_test, X_dev, X_train = emb_shuffled[:test_sample_index, :], emb_shuffled[test_sample_index:2 *
                                                                                test_sample_index, :], emb_shuffled[2 * test_sample_index:, :]  # (6,3555,500),(6,888,500)
     y_test, y_dev, y_train = anno_shuffled[:test_sample_index, :], anno_shuffled[test_sample_index:2 *
@@ -90,3 +93,9 @@ print('m-aupr:', np.mean(maupr_all), np.std(maupr_all))
 print('M-aupr:', np.mean(Maupr_all), np.std(Maupr_all))
 print('subset zero_one loss:', np.mean(
     zero_one_loss_all), np.std(zero_one_loss_all))
+
+# print('acc:', acc_all)
+# print('f1:', f1_all)
+# print('m-aupr:', maupr_all)
+# print('M-aupr:', Maupr_all)
+# print('subset zero_one loss:', zero_one_loss_all)

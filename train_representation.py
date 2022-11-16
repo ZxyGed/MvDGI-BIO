@@ -5,6 +5,7 @@ import time
 import random
 import argparse
 import logging
+import hashlib
 
 import yaml
 import numpy as np
@@ -33,6 +34,11 @@ parser.add_argument('-rg', '--re_generate', default=False, type=bool)
 parser.add_argument('-ep', '--num_epoch', default=1200, type=int)
 parser.add_argument('-lr', '--learning_rate', default=0.005, type=float)
 parser.add_argument('-dr', '--dropout_rate', default=0.1, type=float)
+
+parser.add_argument('-hd', '--hidden_dim', default=0.1, type=int)
+parser.add_argument('-ed', '--embedding_dim', default=0.1, type=int)
+parser.add_argument('-pa', '--patience', default=0.1, type=int)
+
 
 args_temp = parser.parse_args()
 with open(args_temp.config_yaml, 'r', encoding='utf-8') as f:
@@ -83,9 +89,10 @@ best_epoch = args.num_epoch + 1
 target_label_1 = torch.ones(num_views * num_nodes, 1)
 target_label_0 = torch.zeros(num_views * num_nodes, 1)
 target_label = torch.cat((target_label_1, target_label_0), 0).to(device)
+# target_label = torch.cat((target_label_0, target_label_1), 0).to(device)
 
 t = time.time()
-losses=[]
+losses = []
 for epoch in range(args.num_epoch):
     # gc.collect()
     # torch.cuda.empty_cache()
@@ -94,6 +101,8 @@ for epoch in range(args.num_epoch):
     optimiser.zero_grad()
     logits = model(datas)
     loss = b_xent(logits, target_label)
+    if not epoch % 10:
+        print(f'epoch:{epoch}, loss:{loss.cpu().detach().numpy()}')
     losses.append(loss.cpu().detach().numpy())
     # loss += build_consistency_loss(model.get_attention_weight())
     if loss < best_performance:
@@ -116,5 +125,18 @@ print("Total time elapsed: %.4fs" % (time.time() - t))
 print("Loading %dth epoch" % best_epoch)
 model.load_state_dict(torch.load("model/%s.pkl" % args.name))
 embeddings = model.embed(datas).cpu().detach().numpy()
-print(f'embeddings.shape:{embeddings.shape}')
-np.save("embeddings/%s.npy" % args.name, embeddings)
+# print(f'embeddings.shape:{embeddings.shape}')
+
+args_dict = vars(args)
+selcted_params = ['hiddens_dim', 'embdding_dim',
+                  'dropout_rate', 'learning_rate']
+selcted_params_dict = {key: args_dict[key] for key in selcted_params}
+tale = hashlib.md5(str(sorted(selcted_params_dict.items()))).hexdigest()
+
+if args.name == 'yeast':
+    head = f"{args.name}_{args.level}_{args.type}"
+else:
+    head = f"{args.name}_{args.domain}_{args.size}_{args.type}"
+
+np.savez(f"embeddings/{head}_{tale}.npz",
+         X=embeddings, params=selcted_params_dict)

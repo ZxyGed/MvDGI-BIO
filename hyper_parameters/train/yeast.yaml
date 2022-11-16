@@ -1,13 +1,13 @@
 name: yeast
 root: datasets/Yeast
 level: level1
+type: semisupervise
 re_generate: False
-is_supervise: False
 
 hidden_dim: 512
-embedding_dim: 32
+embedding_dim: 128
 dropout_rate: 0.1
-learning_rate: 0.005
+learning_rate: 0.01
 num_epoch: 1200
 patience: 35
 
