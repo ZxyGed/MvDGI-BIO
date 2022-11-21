@@ -4,7 +4,7 @@ import pandas as pd
 
 class ResultDB:
     def __init__(self, save_dir, dataset_name, table_name):
-        self.conn = sqlite3.connect(f"{save_dir}/{name}.db")
+        self.conn = sqlite3.connect(f"{save_dir}/{dataset_name}.db")
         self.cur = self.conn.cursor()
         # sql column name is case-insensitive
         create_table = f'''
@@ -34,8 +34,8 @@ class ResultDB:
 
     def search_ret(self, table_name, moduleID, classifierID):
         search_cmd = f'''
-    	select * from {table_name} where moduleID={moduleID} and classifierID={classifierID};
-    	'''
+        select * from {table_name} where moduleID={moduleID} and classifierID={classifierID};
+        '''
         self.cursor.execute(search_cmd)
         return self.cursor.fetchall()
 
@@ -43,8 +43,8 @@ class ResultDB:
         ret = self.search_ret(table_name, moduleID, classifierID)
         if not len(ret) or is_replace:
             insert_cmd = f'''
-    		insert into {table_name} values ({moduleID},{classifierID},{module_params},{classifier_params},{ret_str})
-    		'''
+            insert into {table_name} values ({moduleID},{classifierID},{module_params},{classifier_params},{ret_str})
+            '''
             self.conn.execute(insert_cmd)
             self.conn.commit()
 

@@ -1,4 +1,5 @@
-import sqlite3
+import sys
+import hashlib
 import argparse
 
 import torch
@@ -10,6 +11,7 @@ from sklearn.metrics import zero_one_loss
 # from sklearn.preprocessing import StandardScaler, minmax_scale
 
 from metrics import evaluate_performance
+from save_result import ResultDB
 
 
 parser = argparse.ArgumentParser(description='Testing Config', add_help=False)
@@ -17,7 +19,7 @@ parser = argparse.ArgumentParser(description='Testing Config', add_help=False)
 parser.add_argument('-c', '--config_yaml', default="./hyper_parameters/test/test_params.yaml",
                     type=str, metavar='FILE', help='YAML config file specifying default arguments')
 parser.add_argument('-na', '--name', default='yeast', type=str)
-parser.add_argument('-l', '--level', default='level1', type=str)
+parser.add_argument('-l', '--level', default='levtel1', type=str)
 parser.add_argument('-d', '--domain', default='bp', type=str)
 parser.add_argument('-s', '--size', default='1130', type=str)
 
@@ -29,23 +31,35 @@ with open(args_temp.config_yaml, 'r', encoding='utf-8') as f:
     parser.set_defaults(lgb_params=cfg['lgb_params'])
 args = parser.parse_args()
 
+# X = np.load(f'embeddings/{args.name}.npy', allow_pickle=True)
+content = np.load(f'embeddings/{args.name}_test.npz',allow_pickle=True)
+X = content['X']
+module_params = content['params'].item()
+# print(params)
+
 if args.name == 'yeast':
     path = f'datasets/labels/{args.name}_{args.level}.npz'
+    table_name = f"{args.level}_semisupervised"
 else:
     path = f'datasets/labels/{args.name}_{args.domain}_{args.size}.npz'
+    table_name = f"{args.domain}_{args.size}_semisupervised"
 
 content = np.load(path)
 Y = content['y']
-content = np.load(f'embeddings/{args.name}_test.npz')
-X = content['X']
-params = content['params']
-print(params)
 
 maupr_all = []
 Maupr_all = []
 acc_all = []
 f1_all = []
 zero_one_loss_all = []
+
+moduleID = hashlib.md5(str(sorted(module_params.items()))).hexdigest()
+classifierID = hashlib.md5(str(sorted(args.lgb_params.items()))).hexdigest()
+retdb = ResultDB('results', args.name, table_name)
+tempret=retdb.search_ret(table_name, moduleID, classifierID)
+if len(tempret)>0:
+    # if has run this params, exit the condition
+    sys.exit(0)
 
 
 for j in range(10):
@@ -94,8 +108,11 @@ print('M-aupr:', np.mean(Maupr_all), np.std(Maupr_all))
 print('subset zero_one loss:', np.mean(
     zero_one_loss_all), np.std(zero_one_loss_all))
 
-# print('acc:', acc_all)
-# print('f1:', f1_all)
-# print('m-aupr:', maupr_all)
-# print('M-aupr:', Maupr_all)
-# print('subset zero_one loss:', zero_one_loss_all)
+ret_str = f"{np.mean(acc_all)},{np.std(acc_all)},\
+            {np.mean(f1_all)},{np.std(f1_all)},\
+            {np.mean(maupr_all)},{np.std(maupr_all)},\
+            {np.mean(Maupr_all)},{np.std(Maupr_all)},\
+            {np.mean(zero_one_loss_all)},{np.std(zero_one_loss_all)}"
+
+retdb.insert_ret(table_name, moduleID, classifierID,
+                 module_params, classifier_params, ret_str)
