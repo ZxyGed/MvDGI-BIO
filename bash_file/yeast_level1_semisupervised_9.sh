@@ -1,4 +1,4 @@
-#!bin/bash
+#/bin/bash
 python ../train_representation.py -hd 3200 -ed 128 -lr 0 -dr 0.001
 python ../train_representation.py -hd 3200 -ed 128 -lr 0 -dr 0.005
 python ../train_representation.py -hd 3200 -ed 128 -lr 0 -dr 0.01
