@@ -32,7 +32,7 @@ with open(args_temp.config_yaml, 'r', encoding='utf-8') as f:
 args = parser.parse_args()
 
 # X = np.load(f'embeddings/{args.name}.npy', allow_pickle=True)
-content = np.load(f'embeddings/{args.name}_test.npz',allow_pickle=True)
+content = np.load(f'embeddings/{args.name}_test.npz', allow_pickle=True)
 X = content['X']
 module_params = content['params'].item()
 # print(params)
@@ -53,11 +53,11 @@ acc_all = []
 f1_all = []
 zero_one_loss_all = []
 
-moduleID = hashlib.md5(str(sorted(module_params.items()))).hexdigest()
-classifierID = hashlib.md5(str(sorted(args.lgb_params.items()))).hexdigest()
+moduleID = hashlib.md5(str(sorted(module_params.items())).encode('utf-8')).hexdigest()
+classifierID = hashlib.md5(str(sorted(args.lgb_params.items())).encode('utf-8')).hexdigest()
 retdb = ResultDB('results', args.name, table_name)
-tempret=retdb.search_ret(table_name, moduleID, classifierID)
-if len(tempret)>0:
+tempret = retdb.search_ret(table_name, moduleID, classifierID)
+if len(tempret) > 0:
     # if has run this params, exit the condition
     sys.exit(0)
 

@@ -54,6 +54,21 @@ if not os.path.exists('embeddings'):
 if not os.path.exists('results'):
     os.mkdir('results')
 
+args_dict = vars(args)
+selcted_params = ['hidden_dim', 'embedding_dim',
+                  'dropout_rate', 'learning_rate']
+selcted_params_dict = {key: args_dict[key] for key in selcted_params}
+tale = hashlib.md5(str(sorted(selcted_params_dict.items())
+                       ).encode('utf-8')).hexdigest()
+
+if args.name == 'yeast':
+    head = f"{args.name}_{args.level}_{args.type}"
+else:
+    head = f"{args.name}_{args.domain}_{args.size}_{args.type}"
+
+identity_name = f"{head}_{tale}"
+
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 if args.name == 'yeast':
     datas = Yeast(args.root, level=args.level,
@@ -74,7 +89,7 @@ attrs_dim = [d.num_features for d in datas]
 hiddens_dim = [args.hidden_dim] * num_views
 out_dim = args.embedding_dim
 
-print(f'embdding_dim:{out_dim}')
+# print(f'embdding_dim:{out_dim}')
 # print(f'attrs_dim:{attrs_dim}')
 
 model = BIODGI(attrs_dim, hiddens_dim, out_dim, args.dropout_rate).to(device)
@@ -109,7 +124,7 @@ for epoch in range(args.num_epoch):
         best_performance = loss
         best_epoch = epoch
         bad_counter = 0
-        torch.save(model.state_dict(), 'model/%s.pkl' % args.name)
+        torch.save(model.state_dict(), f'model/{identity_name}.pkl')
     else:
         bad_counter += 1
     if bad_counter == args.patience:
@@ -127,16 +142,5 @@ model.load_state_dict(torch.load("model/%s.pkl" % args.name))
 embeddings = model.embed(datas).cpu().detach().numpy()
 # print(f'embeddings.shape:{embeddings.shape}')
 
-args_dict = vars(args)
-selcted_params = ['hiddens_dim', 'embdding_dim',
-                  'dropout_rate', 'learning_rate']
-selcted_params_dict = {key: args_dict[key] for key in selcted_params}
-tale = hashlib.md5(str(sorted(selcted_params_dict.items()))).hexdigest()
-
-if args.name == 'yeast':
-    head = f"{args.name}_{args.level}_{args.type}"
-else:
-    head = f"{args.name}_{args.domain}_{args.size}_{args.type}"
-
-np.savez(f"embeddings/{head}_{tale}.npz",
+np.savez(f"embeddings/{identity_name}.npz",
          X=embeddings, params=selcted_params_dict)
