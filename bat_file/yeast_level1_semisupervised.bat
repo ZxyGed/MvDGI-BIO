@@ -1,0 +1,11 @@
+@echo off
+bat_file/yeast_level1_semisupervised_0.bat
+bat_file/yeast_level1_semisupervised_1.bat
+bat_file/yeast_level1_semisupervised_2.bat
+bat_file/yeast_level1_semisupervised_3.bat
+bat_file/yeast_level1_semisupervised_4.bat
+bat_file/yeast_level1_semisupervised_5.bat
+bat_file/yeast_level1_semisupervised_6.bat
+bat_file/yeast_level1_semisupervised_7.bat
+bat_file/yeast_level1_semisupervised_8.bat
+bat_file/yeast_level1_semisupervised_9.bat

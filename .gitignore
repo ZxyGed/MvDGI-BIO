@@ -142,4 +142,7 @@ datasets/
 
 # intermediate product
 gen_yaml.py
-gen_bash.py
+
+*.tar.gz
+
+bash_file/

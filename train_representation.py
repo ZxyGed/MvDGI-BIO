@@ -70,6 +70,7 @@ identity_name = f"{head}_{tale}"
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = "cpu"
 if args.name == 'yeast':
     datas = Yeast(args.root, level=args.level,
                   re_generate=args.re_generate).data
@@ -108,37 +109,40 @@ target_label = torch.cat((target_label_1, target_label_0), 0).to(device)
 
 t = time.time()
 losses = []
-for epoch in range(args.num_epoch):
-    # gc.collect()
-    # torch.cuda.empty_cache()
-    # free_gpu_cache()
-    model.train()
-    optimiser.zero_grad()
-    logits = model(datas)
-    loss = b_xent(logits, target_label)
-    if not epoch % 10:
-        print(f'epoch:{epoch}, loss:{loss.cpu().detach().numpy()}')
-    losses.append(loss.cpu().detach().numpy())
-    # loss += build_consistency_loss(model.get_attention_weight())
-    if loss < best_performance:
-        best_performance = loss
-        best_epoch = epoch
-        bad_counter = 0
-        torch.save(model.state_dict(), f'model/{identity_name}.pkl')
-    else:
-        bad_counter += 1
-    if bad_counter == args.patience:
-        print('Early Stoping at epoch %d' % epoch)
-        break
+try:
+    for epoch in range(args.num_epoch):
+        # gc.collect()
+        # torch.cuda.empty_cache()
+        # free_gpu_cache()
+        model.train()
+        optimiser.zero_grad()
+        logits = model(datas)
+        loss = b_xent(logits, target_label)
+        if not epoch % 10:
+            print(f'epoch:{epoch}, loss:{loss.cpu().detach().numpy()}')
+        losses.append(loss.cpu().detach().numpy())
+        # loss += build_consistency_loss(model.get_attention_weight())
+        if loss < best_performance:
+            best_performance = loss
+            best_epoch = epoch
+            bad_counter = 0
+            torch.save(model.state_dict(), f'model/{identity_name}.pkl')
+        else:
+            bad_counter += 1
+        if bad_counter == args.patience:
+            print('Early Stoping at epoch %d' % epoch)
+            break
 
-    loss.backward()
-    optimiser.step()
+        loss.backward()
+        optimiser.step()
+except Exception as e:
+    sys.exit(0)
 
 print("Optimization Finished!")
 print("Total time elapsed: %.4fs" % (time.time() - t))
 
 print("Loading %dth epoch" % best_epoch)
-model.load_state_dict(torch.load("model/%s.pkl" % args.name))
+model.load_state_dict(torch.load(f"model/{identity_name}.pkl"))
 embeddings = model.embed(datas).cpu().detach().numpy()
 # print(f'embeddings.shape:{embeddings.shape}')
 
